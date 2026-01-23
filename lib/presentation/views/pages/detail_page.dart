@@ -4,6 +4,8 @@ import 'package:pry_gestion_contactos_riverpod_ddd/presentation/providers/contac
 import 'dart:io'; //esto para manejar archivos de imagen
 import 'package:pry_gestion_contactos_riverpod_ddd/presentation/views/widgets/buttons.dart';
 import 'package:pry_gestion_contactos_riverpod_ddd/presentation/views/widgets/text_field_widget.dart';
+import 'package:pry_gestion_contactos_riverpod_ddd/presentation/views/widgets/app_text_styles.dart';
+import 'package:pry_gestion_contactos_riverpod_ddd/presentation/views/widgets/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,38 +112,43 @@ class DetailPage extends ConsumerWidget {
                     const SizedBox(height: 19),
                     Buttons(onPressed: _pickImage, label: 'Edit image'),
                     const SizedBox(height: 19),
-                    Buttons(
-                      onPressed: () => Navigator.pop(context),
-                      label: 'Cancel',
-                    ),
-                    const SizedBox(height: 19),
-                    Buttons(
-                      onPressed: () async {
-                        if (editNameCtrl.text.isEmpty ||
-                            editDescCtrl.text.isEmpty ||
-                            editEmailCtrl.text.isEmpty ||
-                            editPhoneCtrl.text.isEmpty)
-                          return;
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Buttons(
+                          onPressed: () => Navigator.pop(context),
+                          label: 'Cancel',
+                        ),
+                        const SizedBox(height: 19),
+                        Buttons(
+                          onPressed: () async {
+                            if (editNameCtrl.text.isEmpty ||
+                                editDescCtrl.text.isEmpty ||
+                                editEmailCtrl.text.isEmpty ||
+                                editPhoneCtrl.text.isEmpty)
+                              return;
 
-                        await ref
-                            .read(contactProvider.notifier)
-                            .update(
-                              Contact(
-                                id: contact.id,
-                                name: editNameCtrl.text,
-                                description: editDescCtrl.text,
-                                photo: _image?.path ?? contact.photo,
-                                email: editEmailCtrl.text,
-                                phoneNumber: editPhoneCtrl.text,
-                              ),
-                            );
+                            await ref
+                                .read(contactProvider.notifier)
+                                .update(
+                                  Contact(
+                                    id: contact.id,
+                                    name: editNameCtrl.text,
+                                    description: editDescCtrl.text,
+                                    photo: _image?.path ?? contact.photo,
+                                    email: editEmailCtrl.text,
+                                    phoneNumber: editPhoneCtrl.text,
+                                  ),
+                                );
 
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          Navigator.pop(context);
-                        }
-                      },
-                      label: 'Save',
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              Navigator.pop(context);
+                            }
+                          },
+                          label: 'Save',
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -150,24 +157,53 @@ class DetailPage extends ConsumerWidget {
           );
         },
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 80,
-              backgroundImage: contact.photo.isNotEmpty
-                  ? FileImage(File(contact.photo))
-                  : null,
+            const SizedBox(height: 32),
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: CircleAvatar(
+                radius: 70,
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                backgroundImage: contact.photo.isNotEmpty
+                    ? FileImage(File(contact.photo))
+                    : null,
+                child: contact.photo.isEmpty
+                    ? Icon(Icons.person, size: 60, color: AppColors.primary)
+                    : null,
+              ),
             ),
-            Text(contact.name),
+            const SizedBox(height: 16),
+            Text(contact.name, style: AppTextStyles.h3),
+            const SizedBox(height: 24),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextButton(
+                ElevatedButton.icon(
                   onPressed: () => _llamar(contact.phoneNumber),
-                  child: Icon(Icons.phone),
+                  icon: const Icon(Icons.phone, size: 20),
+                  label: const Text('Call'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
                 ),
-                TextButton(
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
                   onPressed: () {
                     showDialog(
                       context: context,
@@ -186,16 +222,18 @@ class DetailPage extends ConsumerWidget {
                         ),
                         actions: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Buttons(
                                 onPressed: () => Navigator.pop(context),
                                 label: 'Cancel',
+                                isOutlined: true,
                               ),
-                              SizedBox(width: 20),
+                              const SizedBox(width: 12),
                               Buttons(
                                 onPressed: () =>
                                     _sendEmail(contact.email, subjectCtrl.text),
-                                label: 'Send Email',
+                                label: 'Send',
                               ),
                             ],
                           ),
@@ -203,33 +241,81 @@ class DetailPage extends ConsumerWidget {
                       ),
                     );
                   },
-                  child: Icon(Icons.email),
+                  icon: const Icon(Icons.email, size: 20),
+                  label: const Text('Email'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            Container(
-              margin: EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Contact Info'),
-                  Row(children: [Icon(Icons.email), Text(contact.email)]),
-                  Row(children: [Icon(Icons.phone), Text(contact.phoneNumber)]),
-                ],
+            const SizedBox(height: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Contact Info', style: AppTextStyles.h5),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(Icons.email, color: AppColors.primary, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              contact.email,
+                              style: AppTextStyles.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.phone, color: AppColors.primary, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            contact.phoneNumber,
+                            style: AppTextStyles.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-            Container(
-              margin: EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${contact.name}\'s Description'),
-                  Text(contact.description),
-                ],
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Description', style: AppTextStyles.h5),
+                      const SizedBox(height: 12),
+                      Text(
+                        contact.description,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
+            const SizedBox(height: 32),
           ],
         ),
       ),

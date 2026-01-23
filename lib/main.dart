@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pry_gestion_contactos_riverpod_ddd/presentation/views/detail_page.dart';
-import 'presentation/views/contact_page.dart';
-import 'presentation/views/detail_page.dart';
+import 'package:pry_gestion_contactos_riverpod_ddd/presentation/views/pages/detail_page.dart';
+import 'presentation/views/pages/contact_page.dart';
+import 'presentation/views/pages/detail_page.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));

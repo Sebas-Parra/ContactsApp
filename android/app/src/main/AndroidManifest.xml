@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Permisos para hacer llamadas telefónicas -->
     <uses-permission android:name="android.permission.CALL_PHONE"/>
+    <!-- Permisos para leer imágenes -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
     
     <application
         android:label="pry_gestion_contactos_riverpod_ddd"

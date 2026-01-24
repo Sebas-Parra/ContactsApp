@@ -17,6 +17,7 @@ class DetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final contact = ModalRoute.of(context)!.settings.arguments as Contact;
     final subjectCtrl = TextEditingController();
+    final bodyCtrl = TextEditingController();
 
     File? _image;
 
@@ -25,6 +26,14 @@ class DetailPage extends ConsumerWidget {
       final XFile? photo = await picker.pickImage(source: ImageSource.gallery);
       if (photo != null) {
         _image = File(photo.path);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image Selected!!'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
       }
     }
 
@@ -41,6 +50,20 @@ class DetailPage extends ConsumerWidget {
       }
     }
 
+    Future<void> _addFavorite(Contact contact) async {
+      final updatedContact = Contact(
+        id: contact.id,
+        name: contact.name,
+        description: contact.description,
+        photo: contact.photo,
+        email: contact.email,
+        phoneNumber: contact.phoneNumber,
+        isFavorite: !contact.isFavorite, // Alternar el estado de favorito
+      );
+
+      await ref.read(contactProvider.notifier).update(updatedContact);
+    }
+
     String? encodeQueryParameters(Map<String, String> params) {
       return params.entries
           .map(
@@ -50,11 +73,14 @@ class DetailPage extends ConsumerWidget {
           .join('&');
     }
 
-    Future<void> _sendEmail(String email, String subject) async {
+    Future<void> _sendEmail(String email, String subject, String body) async {
       final uri = Uri(
         scheme: 'mailto',
         path: email,
-        query: encodeQueryParameters(<String, String>{'subject': subject}),
+        query: encodeQueryParameters(<String, String>{'subject': subject,
+        //Agregar body si se desea
+        'body': body,
+        }),
       );
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -68,7 +94,75 @@ class DetailPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Details")),
+      appBar: AppBar(
+        title: const Text("Details"),
+        actions: [
+          IconButton(
+            icon: Icon(
+              contact.isFavorite ? Icons.star : Icons.star_border,
+              color: contact.isFavorite ? AppColors.warning : null,
+            ),
+            onPressed: () async {
+              await _addFavorite(contact);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      contact.isFavorite
+                          ? 'Removed from Favorites!!'
+                          : 'Added to Favorites!!',
+                    ),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: contact.isFavorite ? AppColors.textSecondary : AppColors.warning,
+                  ),
+                );
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Delete Contact'),
+                  content: Text(
+                    'Are you sure you want to delete ${contact.name}?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await ref
+                            .read(contactProvider.notifier)
+                            .delete(contact.id!);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Contact Deleted!!'),
+                              duration: Duration(seconds: 2),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                      ),
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.edit),
         onPressed: () {
@@ -115,11 +209,11 @@ class DetailPage extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Buttons(
+                        TextButton(
                           onPressed: () => Navigator.pop(context),
-                          label: 'Cancel',
+                          child: const Text('Cancel'),
                         ),
-                        const SizedBox(height: 19),
+                        const SizedBox(width: 12),
                         Buttons(
                           onPressed: () async {
                             if (editNameCtrl.text.isEmpty ||
@@ -144,6 +238,13 @@ class DetailPage extends ConsumerWidget {
                             if (context.mounted) {
                               Navigator.pop(context);
                               Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Contact Updated!!'),
+                                  duration: Duration(seconds: 2),
+                                  backgroundColor: AppColors.info,
+                                ),
+                              );
                             }
                           },
                           label: 'Save',
@@ -195,7 +296,7 @@ class DetailPage extends ConsumerWidget {
                   label: const Text('Call'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.success,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.textOnPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 12,
@@ -208,17 +309,42 @@ class DetailPage extends ConsumerWidget {
                     showDialog(
                       context: context,
                       builder: (_) => AlertDialog(
-                        title: Text('Send Email to ${contact.email}'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
+                        title: Row(
                           children: [
-                            InputsText(
-                              controller: subjectCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Subject',
-                              ),
-                            ),
+                            Icon(Icons.email, color: AppColors.accent),
+                            const SizedBox(width: 8),
+                            const Text('Send Email'),
                           ],
+                        ),
+                        content: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'To: ${contact.email}',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              InputsText(
+                                controller: subjectCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Subject',
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              InputsText(
+                                controller: bodyCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Message',
+                                  alignLabelWithHint: true,
+                                ),
+                                maxLines: 5,
+                              ),
+                            ],
+                          ),
                         ),
                         actions: [
                           Row(
@@ -228,12 +354,20 @@ class DetailPage extends ConsumerWidget {
                                 onPressed: () => Navigator.pop(context),
                                 label: 'Cancel',
                                 isOutlined: true,
+                                isSmall: true,
                               ),
                               const SizedBox(width: 12),
                               Buttons(
-                                onPressed: () =>
-                                    _sendEmail(contact.email, subjectCtrl.text),
+                                onPressed: () {
+                                  _sendEmail(
+                                    contact.email,
+                                    subjectCtrl.text,
+                                    bodyCtrl.text,
+                                  );
+                                  Navigator.pop(context);
+                                },
                                 label: 'Send',
+                                isSmall: true,
                               ),
                             ],
                           ),
@@ -245,7 +379,7 @@ class DetailPage extends ConsumerWidget {
                   label: const Text('Email'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.textOnPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 12,

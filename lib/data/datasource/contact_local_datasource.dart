@@ -20,6 +20,7 @@ class ContactLocalDataSource {
       photo: e.photo,
       email: e.email, // Agregar campos adicionales si es necesario
       phoneNumber: e.phoneNumber,
+      isFavorite: e.isFavorite,
     )).toList();
   }
 
@@ -31,6 +32,7 @@ class ContactLocalDataSource {
         photo: drift.Value(contact.photo),
         email: drift.Value(contact.email),
         phoneNumber: drift.Value(contact.phoneNumber),
+        isFavorite: drift.Value(contact.isFavorite),
       ),
     );
   }
@@ -48,6 +50,7 @@ class ContactLocalDataSource {
         photo: contact.photo,
         email: contact.email,
         phoneNumber: contact.phoneNumber,
+        isFavorite: contact.isFavorite,
       ),
     );
   }

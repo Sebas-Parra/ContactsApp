@@ -12,6 +12,7 @@ class Contacts extends Table {
   TextColumn get photo => text()();
   TextColumn get email => text().withDefault(const Constant(''))();
   TextColumn get phoneNumber => text().withDefault(const Constant(''))();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
 }
 
 // Esta anotación define qué tablas incluir en la base de datos
@@ -20,7 +21,17 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        // Agregar columna isFavorite si no existe
+        await migrator.addColumn(contacts, contacts.isFavorite);
+      }
+    },
+  );
 
   // Conexión a la base de datos usando drift_flutter
   static QueryExecutor _openConnection() {

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pry_gestion_contactos_riverpod_ddd/presentation/views/pages/detail_page.dart';
 import 'presentation/views/pages/contact_page.dart';
 import 'presentation/views/pages/detail_page.dart';
+import 'presentation/views/pages/favorite_contact_page.dart';
+import 'presentation/views/pages/groups_page.dart';
 import 'presentation/views/widgets/app_theme.dart';
 
 void main() {
@@ -21,6 +22,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) =>  const ContactsPage(),
         '/detail': (context) => const DetailPage(),
+        '/favorites': (context) => const FavoriteContactPage(),
+        '/groups': (context) => const GroupsPage(),
       },
     );
   }

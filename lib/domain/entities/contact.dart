@@ -5,6 +5,7 @@ class Contact {
   final String photo;
   final String email;
   final String phoneNumber;
+  final bool isFavorite;
 
   Contact({
     this.id, //No se usa required porque puede ser nulo y no es obligatorio al crear el objeto
@@ -13,6 +14,7 @@ class Contact {
     required this.photo,
     required this.email,
     required this.phoneNumber,
+    this.isFavorite = false, //Valor por defecto false
   });
 
   

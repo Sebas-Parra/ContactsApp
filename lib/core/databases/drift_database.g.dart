@@ -72,6 +72,21 @@ class $ContactsTable extends Contacts with TableInfo<$ContactsTable, Contact> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _isFavoriteMeta = const VerificationMeta(
+    'isFavorite',
+  );
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+    'is_favorite',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_favorite" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -80,6 +95,7 @@ class $ContactsTable extends Contacts with TableInfo<$ContactsTable, Contact> {
     photo,
     email,
     phoneNumber,
+    isFavorite,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -138,6 +154,12 @@ class $ContactsTable extends Contacts with TableInfo<$ContactsTable, Contact> {
         ),
       );
     }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+        _isFavoriteMeta,
+        isFavorite.isAcceptableOrUnknown(data['is_favorite']!, _isFavoriteMeta),
+      );
+    }
     return context;
   }
 
@@ -171,6 +193,10 @@ class $ContactsTable extends Contacts with TableInfo<$ContactsTable, Contact> {
         DriftSqlType.string,
         data['${effectivePrefix}phone_number'],
       )!,
+      isFavorite: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_favorite'],
+      )!,
     );
   }
 
@@ -187,6 +213,7 @@ class Contact extends DataClass implements Insertable<Contact> {
   final String photo;
   final String email;
   final String phoneNumber;
+  final bool isFavorite;
   const Contact({
     required this.id,
     required this.name,
@@ -194,6 +221,7 @@ class Contact extends DataClass implements Insertable<Contact> {
     required this.photo,
     required this.email,
     required this.phoneNumber,
+    required this.isFavorite,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -204,6 +232,7 @@ class Contact extends DataClass implements Insertable<Contact> {
     map['photo'] = Variable<String>(photo);
     map['email'] = Variable<String>(email);
     map['phone_number'] = Variable<String>(phoneNumber);
+    map['is_favorite'] = Variable<bool>(isFavorite);
     return map;
   }
 
@@ -215,6 +244,7 @@ class Contact extends DataClass implements Insertable<Contact> {
       photo: Value(photo),
       email: Value(email),
       phoneNumber: Value(phoneNumber),
+      isFavorite: Value(isFavorite),
     );
   }
 
@@ -230,6 +260,7 @@ class Contact extends DataClass implements Insertable<Contact> {
       photo: serializer.fromJson<String>(json['photo']),
       email: serializer.fromJson<String>(json['email']),
       phoneNumber: serializer.fromJson<String>(json['phoneNumber']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
     );
   }
   @override
@@ -242,6 +273,7 @@ class Contact extends DataClass implements Insertable<Contact> {
       'photo': serializer.toJson<String>(photo),
       'email': serializer.toJson<String>(email),
       'phoneNumber': serializer.toJson<String>(phoneNumber),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
     };
   }
 
@@ -252,6 +284,7 @@ class Contact extends DataClass implements Insertable<Contact> {
     String? photo,
     String? email,
     String? phoneNumber,
+    bool? isFavorite,
   }) => Contact(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -259,6 +292,7 @@ class Contact extends DataClass implements Insertable<Contact> {
     photo: photo ?? this.photo,
     email: email ?? this.email,
     phoneNumber: phoneNumber ?? this.phoneNumber,
+    isFavorite: isFavorite ?? this.isFavorite,
   );
   Contact copyWithCompanion(ContactsCompanion data) {
     return Contact(
@@ -272,6 +306,9 @@ class Contact extends DataClass implements Insertable<Contact> {
       phoneNumber: data.phoneNumber.present
           ? data.phoneNumber.value
           : this.phoneNumber,
+      isFavorite: data.isFavorite.present
+          ? data.isFavorite.value
+          : this.isFavorite,
     );
   }
 
@@ -283,14 +320,15 @@ class Contact extends DataClass implements Insertable<Contact> {
           ..write('description: $description, ')
           ..write('photo: $photo, ')
           ..write('email: $email, ')
-          ..write('phoneNumber: $phoneNumber')
+          ..write('phoneNumber: $phoneNumber, ')
+          ..write('isFavorite: $isFavorite')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, name, description, photo, email, phoneNumber);
+      Object.hash(id, name, description, photo, email, phoneNumber, isFavorite);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -300,7 +338,8 @@ class Contact extends DataClass implements Insertable<Contact> {
           other.description == this.description &&
           other.photo == this.photo &&
           other.email == this.email &&
-          other.phoneNumber == this.phoneNumber);
+          other.phoneNumber == this.phoneNumber &&
+          other.isFavorite == this.isFavorite);
 }
 
 class ContactsCompanion extends UpdateCompanion<Contact> {
@@ -310,6 +349,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
   final Value<String> photo;
   final Value<String> email;
   final Value<String> phoneNumber;
+  final Value<bool> isFavorite;
   const ContactsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -317,6 +357,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
     this.photo = const Value.absent(),
     this.email = const Value.absent(),
     this.phoneNumber = const Value.absent(),
+    this.isFavorite = const Value.absent(),
   });
   ContactsCompanion.insert({
     this.id = const Value.absent(),
@@ -325,6 +366,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
     required String photo,
     this.email = const Value.absent(),
     this.phoneNumber = const Value.absent(),
+    this.isFavorite = const Value.absent(),
   }) : name = Value(name),
        description = Value(description),
        photo = Value(photo);
@@ -335,6 +377,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
     Expression<String>? photo,
     Expression<String>? email,
     Expression<String>? phoneNumber,
+    Expression<bool>? isFavorite,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -343,6 +386,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
       if (photo != null) 'photo': photo,
       if (email != null) 'email': email,
       if (phoneNumber != null) 'phone_number': phoneNumber,
+      if (isFavorite != null) 'is_favorite': isFavorite,
     });
   }
 
@@ -353,6 +397,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
     Value<String>? photo,
     Value<String>? email,
     Value<String>? phoneNumber,
+    Value<bool>? isFavorite,
   }) {
     return ContactsCompanion(
       id: id ?? this.id,
@@ -361,6 +406,7 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
       photo: photo ?? this.photo,
       email: email ?? this.email,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      isFavorite: isFavorite ?? this.isFavorite,
     );
   }
 
@@ -385,6 +431,9 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
     if (phoneNumber.present) {
       map['phone_number'] = Variable<String>(phoneNumber.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     return map;
   }
 
@@ -396,7 +445,8 @@ class ContactsCompanion extends UpdateCompanion<Contact> {
           ..write('description: $description, ')
           ..write('photo: $photo, ')
           ..write('email: $email, ')
-          ..write('phoneNumber: $phoneNumber')
+          ..write('phoneNumber: $phoneNumber, ')
+          ..write('isFavorite: $isFavorite')
           ..write(')'))
         .toString();
   }
@@ -421,6 +471,7 @@ typedef $$ContactsTableCreateCompanionBuilder =
       required String photo,
       Value<String> email,
       Value<String> phoneNumber,
+      Value<bool> isFavorite,
     });
 typedef $$ContactsTableUpdateCompanionBuilder =
     ContactsCompanion Function({
@@ -430,6 +481,7 @@ typedef $$ContactsTableUpdateCompanionBuilder =
       Value<String> photo,
       Value<String> email,
       Value<String> phoneNumber,
+      Value<bool> isFavorite,
     });
 
 class $$ContactsTableFilterComposer
@@ -468,6 +520,11 @@ class $$ContactsTableFilterComposer
 
   ColumnFilters<String> get phoneNumber => $composableBuilder(
     column: $table.phoneNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -510,6 +567,11 @@ class $$ContactsTableOrderingComposer
     column: $table.phoneNumber,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ContactsTableAnnotationComposer
@@ -540,6 +602,11 @@ class $$ContactsTableAnnotationComposer
 
   GeneratedColumn<String> get phoneNumber => $composableBuilder(
     column: $table.phoneNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
     builder: (column) => column,
   );
 }
@@ -578,6 +645,7 @@ class $$ContactsTableTableManager
                 Value<String> photo = const Value.absent(),
                 Value<String> email = const Value.absent(),
                 Value<String> phoneNumber = const Value.absent(),
+                Value<bool> isFavorite = const Value.absent(),
               }) => ContactsCompanion(
                 id: id,
                 name: name,
@@ -585,6 +653,7 @@ class $$ContactsTableTableManager
                 photo: photo,
                 email: email,
                 phoneNumber: phoneNumber,
+                isFavorite: isFavorite,
               ),
           createCompanionCallback:
               ({
@@ -594,6 +663,7 @@ class $$ContactsTableTableManager
                 required String photo,
                 Value<String> email = const Value.absent(),
                 Value<String> phoneNumber = const Value.absent(),
+                Value<bool> isFavorite = const Value.absent(),
               }) => ContactsCompanion.insert(
                 id: id,
                 name: name,
@@ -601,6 +671,7 @@ class $$ContactsTableTableManager
                 photo: photo,
                 email: email,
                 phoneNumber: phoneNumber,
+                isFavorite: isFavorite,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

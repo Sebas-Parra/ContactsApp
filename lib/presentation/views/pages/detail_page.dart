@@ -391,9 +391,11 @@ class DetailPage extends ConsumerWidget {
             const SizedBox(height: 32),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: 340,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -427,12 +429,15 @@ class DetailPage extends ConsumerWidget {
                 ),
               ),
             ),
+            ),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: 340,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -448,6 +453,7 @@ class DetailPage extends ConsumerWidget {
                   ),
                 ),
               ),
+            ),
             ),
             const SizedBox(height: 32),
           ],

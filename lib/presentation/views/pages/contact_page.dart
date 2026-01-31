@@ -59,39 +59,83 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {
+          // Clave para controlar el Form y ejecutar validaciones
+          final _formKey = GlobalKey<FormState>();
+
+          // Expresión regular para validar email básico (usuario@dominio.ext)
+          // No cubre todos los casos RFC, pero sirve para validación común.
+          final emailRegex = RegExp(r'^[\w\.-]+@([\w\-]+\.)+[A-Za-z]{2,}$');
+
+          // Expresión regular para validar números de teléfono simples:
+          // permite un prefijo + opcional y entre 7 y 15 dígitos.
+          final phoneRegex = RegExp(r'^\+?\d{7,15}$');
+
           showDialog(
             context: context,
             builder: (_) => AlertDialog(
               title: const Text('New Contact'),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    InputsText(
-                      controller: nameCtrl,
-                      decoration: const InputDecoration(labelText: 'Name'),
-                    ),
-                    const SizedBox(height: 19),
-                    InputsText(
-                      controller: descriptionCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InputsText(
+                        controller: nameCtrl,
+                        decoration: const InputDecoration(labelText: 'Name'),
+                        // Filtramos caracteres mientras se escribe: permitimos
+                        // letras (incluyendo acentos), espacios, apóstrofo y guión.
+                        // Esto evita que el usuario teclee números en el nombre.
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r"[a-zA-ZÀ-ÖØ-öø-ÿ\s'\-]")
+                          ),
+                        ],
+                        // Validator adicional que se ejecuta al guardar:
+                        // - obliga que no esté vacío
+                        // - comprueba que no contenga dígitos (por si se pega texto con números)
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Name is required';
+                          if (RegExp(r'\d').hasMatch(v)) return 'Name cannot contain numbers';
+                          return null;
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 19),
-                    InputsText(
-                      controller: emailCtrl,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                    ),
-                    const SizedBox(height: 19),
-                    InputsText(
-                      controller: phoneCtrl,
-                      decoration: const InputDecoration(labelText: 'Phone'),
-                      keyboardType: TextInputType.numberWithOptions(),
-                    ),
-                    const SizedBox(height: 19),
-                    Buttons(onPressed: _pickImage, label: 'Seleccionar imagen'),
-                  ],
+                      const SizedBox(height: 19),
+                      InputsText(
+                        controller: descriptionCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
+                        // Aseguramos que la descripción no esté vacía.
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Description is required' : null,
+                      ),
+                      const SizedBox(height: 19),
+                      InputsText(
+                        controller: emailCtrl,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                        // Validación de email al guardar: requerido y debe coincidir con el regex.
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Email is required';
+                          if (!emailRegex.hasMatch(v.trim())) return 'Invalid email';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 19),
+                      InputsText(
+                        controller: phoneCtrl,
+                        decoration: const InputDecoration(labelText: 'Phone'),
+                        keyboardType: TextInputType.phone,
+                        // Validación de teléfono: requerido y debe seguir el patrón definido.
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Phone is required';
+                          if (!phoneRegex.hasMatch(v.trim())) return 'Invalid phone';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 19),
+                      Buttons(onPressed: _pickImage, label: 'Seleccionar imagen'),
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -101,8 +145,8 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    if (nameCtrl.text.isEmpty || descriptionCtrl.text.isEmpty)
-                      return;
+                    // Validamos el Form; si hay errores, no continuamos.
+                    if (!(_formKey.currentState?.validate() ?? false)) return;
 
                     await ref
                         .read(contactProvider.notifier)

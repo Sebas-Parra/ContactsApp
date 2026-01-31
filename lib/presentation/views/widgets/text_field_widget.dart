@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Importamos 'services' para usar TextInputFormatter(s)
 import 'app_colors.dart';
 
 class InputsText extends StatelessWidget {
@@ -14,6 +15,7 @@ class InputsText extends StatelessWidget {
   final VoidCallback? onSuffixIconPressed;
   final bool enabled;
   final String? Function(String?)? validator;
+  final List<TextInputFormatter>? inputFormatters;
 
   const InputsText({
     super.key,
@@ -29,16 +31,22 @@ class InputsText extends StatelessWidget {
     this.onSuffixIconPressed,
     this.enabled = true,
     this.validator,
+    this.inputFormatters,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    // Usamos TextFormField para poder aprovechar la API de validación
+    // que ofrece Flutter mediante `Form` y `FormState`.
+    return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
       maxLines: obscureText ? 1 : maxLines,
       enabled: enabled,
+      // `inputFormatters` permite controlar/filtrar la entrada mientras
+      // el usuario escribe (por ejemplo bloquear números en un nombre).
+      inputFormatters: inputFormatters,
       style: const TextStyle(
         fontSize: 16,
         color: AppColors.textPrimary,
@@ -95,6 +103,9 @@ class InputsText extends StatelessWidget {
           fontSize: 14,
         ),
       ),
+      // `validator` se usa desde un `Form` para validar el campo al
+      // invocar `formKey.currentState!.validate()`.
+      validator: validator,
     );
   }
 }

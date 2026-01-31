@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Import para usar TextInputFormatter/FilteringTextInputFormatter
 import 'package:pry_gestion_contactos_riverpod_ddd/domain/entities/contact.dart';
 import 'package:pry_gestion_contactos_riverpod_ddd/presentation/providers/contact_provider.dart';
 import 'dart:io'; //esto para manejar archivos de imagen
@@ -78,7 +79,7 @@ class DetailPage extends ConsumerWidget {
         scheme: 'mailto',
         path: email,
         query: encodeQueryParameters(<String, String>{'subject': subject,
-        //Agregar body si se desea
+        //Agrega body si se desea
         'body': body,
         }),
       );
@@ -174,84 +175,129 @@ class DetailPage extends ConsumerWidget {
             text: contact.phoneNumber,
           );
 
+          // Form key para poder validar todos los campos del diálogo.
+          final _formKey = GlobalKey<FormState>();
+
+          // Regex para validar email de modo básico (usuario@dominio.ext).
+          // Nota: no cubre todos los casos del estándar RFC pero es suficiente
+          // para validación común en formularios.
+          final emailRegex = RegExp(r'^[\w\.-]+@([\w\-]+\.)+[A-Za-z]{2,}$');
+
+          // Regex para validar números de teléfono simples: permite un '+' opcional
+          // y entre 7 y 15 dígitos.
+          final phoneRegex = RegExp(r'^\+?\d{7,15}$');
+
           showDialog(
             context: context,
             builder: (_) => AlertDialog(
               title: const Text('Contact Edit'),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    InputsText(
-                      controller: editNameCtrl,
-                      decoration: const InputDecoration(labelText: 'Name'),
-                    ),
-                    const SizedBox(height: 19),
-                    InputsText(
-                      controller: editDescCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Campo Nombre
+                      // - `inputFormatters` filtra la entrada mientras se escribe
+                      //   (permitimos letras acentuadas, espacios, apóstrofo y guión)
+                      //   para evitar números en la entrada.
+                      // - `validator` se ejecuta al guardar para rechazar valores
+                      //   vacíos o que contengan dígitos (por si se pega texto).
+                      InputsText(
+                        controller: editNameCtrl,
+                        decoration: const InputDecoration(labelText: 'Name'),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r"[a-zA-ZÀ-ÖØ-öø-ÿ\s'\-]")
+                          ),
+                        ],
+                        //v.trim es para eliminar espacios en blanco al inicio y final
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Name is required';
+                          if (RegExp(r'\d').hasMatch(v)) return 'Name cannot contain numbers';
+                          return null;
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 19),
-                    InputsText(
-                      controller: editEmailCtrl,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                    ),
-                    const SizedBox(height: 19),
-                    InputsText(
-                      controller: editPhoneCtrl,
-                      decoration: const InputDecoration(labelText: 'Phone'),
-                    ),
-                    const SizedBox(height: 19),
-                    Buttons(onPressed: _pickImage, label: 'Edit image'),
-                    const SizedBox(height: 19),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
+                      const SizedBox(height: 19),
+                      // Campo Descripción: requerimos que no esté vacío.
+                      InputsText(
+                        controller: editDescCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
                         ),
-                        const SizedBox(width: 12),
-                        Buttons(
-                          onPressed: () async {
-                            if (editNameCtrl.text.isEmpty ||
-                                editDescCtrl.text.isEmpty ||
-                                editEmailCtrl.text.isEmpty ||
-                                editPhoneCtrl.text.isEmpty)
-                              return;
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Description is required' : null,
+                      ),
+                      const SizedBox(height: 19),
+                      // Campo Email: requerido y validado con `emailRegex`.
+                      InputsText(
+                        controller: editEmailCtrl,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Email is required';
+                          if (!emailRegex.hasMatch(v.trim())) return 'Invalid email';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 19),
+                      // Campo Teléfono: requerido y validado con `phoneRegex`.
+                      InputsText(
+                        controller: editPhoneCtrl,
+                        decoration: const InputDecoration(labelText: 'Phone'),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Phone is required';
+                          if (!phoneRegex.hasMatch(v.trim())) return 'Invalid phone';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 19),
+                      Buttons(onPressed: _pickImage, label: 'Edit image'),
+                      const SizedBox(height: 19),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 12),
+                          Buttons(
+                            onPressed: () async {
+                              // Ejecutamos la validación del Form. Si algún campo
+                              // devuelve un mensaje de error, `validate()` será
+                              // false y salimos sin actualizar.
+                              if (!(_formKey.currentState?.validate() ?? false)) return;
 
-                            await ref
-                                .read(contactProvider.notifier)
-                                .update(
-                                  Contact(
-                                    id: contact.id,
-                                    name: editNameCtrl.text,
-                                    description: editDescCtrl.text,
-                                    photo: _image?.path ?? contact.photo,
-                                    email: editEmailCtrl.text,
-                                    phoneNumber: editPhoneCtrl.text,
+                              await ref
+                                  .read(contactProvider.notifier)
+                                  .update(
+                                    Contact(
+                                      id: contact.id,
+                                      name: editNameCtrl.text,
+                                      description: editDescCtrl.text,
+                                      photo: _image?.path ?? contact.photo,
+                                      email: editEmailCtrl.text,
+                                      phoneNumber: editPhoneCtrl.text,
+                                    ),
+                                  );
+
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Contact Updated!!'),
+                                    duration: Duration(seconds: 2),
+                                    backgroundColor: AppColors.info,
                                   ),
                                 );
-
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Contact Updated!!'),
-                                  duration: Duration(seconds: 2),
-                                  backgroundColor: AppColors.info,
-                                ),
-                              );
-                            }
-                          },
-                          label: 'Save',
-                        ),
-                      ],
-                    ),
-                  ],
+                              }
+                            },
+                            label: 'Save',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
